@@ -29,7 +29,7 @@ public class Input {
 		this.numberOfPizzas = numberOfPizzas;
 	}
 
-	public int getNumOf2memberTeams() {
+	public int getT2() {
 		return t2;
 	}
 
@@ -37,7 +37,7 @@ public class Input {
 		this.t2 = numOf2memberTeams;
 	}
 
-	public int getNumOf3memberTeams() {
+	public int getT3() {
 		return t3;
 	}
 
@@ -45,7 +45,7 @@ public class Input {
 		this.t3 = numOf3memberTeams;
 	}
 
-	public int getNumOf4memberTeams() {
+	public int getT4() {
 		return t4;
 	}
 

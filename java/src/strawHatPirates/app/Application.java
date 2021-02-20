@@ -25,10 +25,16 @@ public class Application {
 	public static final String OUT_FOLDER = "C:\\Users\\bmbabu\\Desktop\\bmbabu\\!work\\wkspc\\hashcode2021\\strawHatPirates\\resource\\output\\";
 
 	public static void main(String args[]) {
-		String fileName = "b_little_bit_of_everything";
-		Input input = parseInputFile(IN_FOLDER + fileName + ".in");
-		Output output = solveProblem(input);
-		writeToFile(output, fileName);
+		String fileList = "a_example,b_little_bit_of_everything,c_many_ingredients,d_many_pizzas,e_many_teams";
+//		String fileList = "b_little_bit_of_everything";
+		for (String fileName : fileList.split(",")) {
+			Input input = parseInputFile(IN_FOLDER + fileName + ".in");
+			input.availablePizzas()
+					.sort((p1, p2) -> Integer.compare(p1.getIngredientsCount(), p2.getIngredientsCount()));
+			Output output = solveProblemSorted(input);
+			writeToFile(output, fileName);
+			System.out.println("Completed " + fileName);
+		}
 	}
 
 	private static Input parseInputFile(String filePath) {
@@ -58,6 +64,72 @@ public class Application {
 
 	}
 
+	private static Output solveProblemSorted(Input input) {
+		PizzaVendor pv = new PizzaVendor();
+		Output out = new Output();
+		while (true) {
+			if (input.availablePizzas().size() < 2) {
+				// If there are less than 2 pizza, we can't deliver to any team
+				break;
+			}
+			if (input.getT2() <= 0 && input.getT3() <= 0 && input.getT4() <= 0) {
+				// We all teams have got a pizza
+				break;
+			}
+			Result r2 = null, r3 = null, r4 = null;
+			if (input.getT2() > 0) {
+				List<Pizza> clonedPizzaList = new ArrayList<>(input.availablePizzas());
+				r2 = pv.getHighIngrdnPizzas(2, clonedPizzaList);
+			}
+			if (input.getT3() > 0) {
+				List<Pizza> clonedPizzaList = new ArrayList<>(input.availablePizzas());
+				r3 = pv.getHighIngrdnPizzas(3, clonedPizzaList);
+			}
+			if (input.getT4() > 0) {
+				List<Pizza> clonedPizzaList = new ArrayList<>(input.availablePizzas());
+				r4 = pv.getHighIngrdnPizzas(4, clonedPizzaList);
+			}
+			if (r2 != null || r3 != null || r4 != null) {
+				selectBestOf3(r2, r3, r4, input, out);
+			}
+
+		}
+		return out;
+	}
+
+	private static void selectBestOf3(Result r2, Result r3, Result r4, Input input, Output out) {
+		if (r2 != null && (r2.getScore() >= getScoreNullSafe(r3) && r2.getScore() >= getScoreNullSafe(r4))) {
+			deliver(out, r2, input);
+			input.setNumOf2memberTeams(input.getT2() - 1);
+		} else if (r3 != null && r3.getScore() >= getScoreNullSafe(r2) && r3.getScore() >= getScoreNullSafe(r4)) {
+			deliver(out, r3, input);
+			input.setNumOf3memberTeams(input.getT3() - 1);
+		} else {
+			deliver(out, r4, input);
+			input.setNumOf4memberTeams(input.getT4() - 1);
+		}
+	}
+
+	public static int getScoreNullSafe(Result r) {
+		if (r == null)
+			return 0;
+		return r.getScore();
+	}
+
+	private static void deliver(Output out, Result r, Input inp) {
+		out.getDeliveries().add(r.getDel());
+		out.setNumberOfDeliveries(out.getNumberOfDeliveries() + 1);
+		for (Pizza p : r.getDel().getPizzas()) {
+			inp.availablePizzas().remove(p);
+		}
+	}
+
+	/**
+	 * Combinations attempt - Checks all combinations -backtrack- VERY INEFFICIENT
+	 * 
+	 * @param input
+	 * @return
+	 */
 	private static Output solveProblem(Input input) {
 		PizzaVendor pv = new PizzaVendor();
 
@@ -66,9 +138,9 @@ public class Application {
 			if (input.availablePizzas().size() < 2)
 				break;
 
-			Future<Result> f2 = pv.getMePizzas(2, input.availablePizzas());
-			Future<Result> f3 = pv.getMePizzas(3, input.availablePizzas());
-			Future<Result> f4 = pv.getMePizzas(4, input.availablePizzas());
+			Future<Result> f2 = pv.getHighScorePizzas(2, input.availablePizzas());
+			Future<Result> f3 = pv.getHighScorePizzas(3, input.availablePizzas());
+			Future<Result> f4 = pv.getHighScorePizzas(4, input.availablePizzas());
 			try {
 				while (!(f2.isDone() && f3.isDone() && f4.isDone())) {
 					System.out.println(String.format("future1 is %s, future2 is %s and future3 is %s",
@@ -79,21 +151,11 @@ public class Application {
 				Result r2 = f2.get();
 				Result r3 = f3.get();
 				Result r4 = f4.get();
-				if (r3 == null || (r2.getScore() >= r3.getScore() && r2.getScore() >= r4.getScore())) {
-					deliver(out, r2, input);
-				} else if (r4 == null || r3.getScore() >= r2.getScore() && r3.getScore() >= r4.getScore()) {
-					deliver(out, r3, input);
-				} else {
-					deliver(out, r4, input);
-				}
+				selectBestOf3(r2, r3, r4, input, out);
 			} catch (InterruptedException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
-			}
-//			Result r2 = getMePizzas(2, input.availablePizzas());
-//			Result r3 = getMePizzas(3, input.availablePizzas());
-//			Result r4 = getMePizzas(4, input.availablePizzas());
-			catch (ExecutionException e) {
+			} catch (ExecutionException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
@@ -101,14 +163,6 @@ public class Application {
 		}
 		pv.shutdown();
 		return out;
-	}
-
-	private static void deliver(Output out, Result r, Input inp) {
-		out.getDeliveries().add(r.getDel());
-		out.setNumberOfDeliveries(out.getNumberOfDeliveries() + 1);
-		for (Pizza p : r.getDel().getPizzas()) {
-			inp.availablePizzas().remove(p);
-		}
 	}
 
 }
