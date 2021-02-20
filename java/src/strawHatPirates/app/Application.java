@@ -6,10 +6,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -26,7 +23,6 @@ public class Application {
 
 	public static void main(String args[]) {
 		String fileList = "a_example,b_little_bit_of_everything,c_many_ingredients,d_many_pizzas,e_many_teams";
-//		String fileList = "b_little_bit_of_everything";
 		for (String fileName : fileList.split(",")) {
 			Input input = parseInputFile(IN_FOLDER + fileName + ".in");
 			input.availablePizzas()
@@ -58,7 +54,6 @@ public class Application {
 			}
 			bw.close();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
